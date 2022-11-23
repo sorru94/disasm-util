@@ -100,6 +100,7 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn new_section_with_name() {
         let section = Section::new(" Section name ");
@@ -111,16 +112,19 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn get_name_with_no_name() {
         let section = Section::new("");
         assert_eq!(section.get_name(), "")
     }
+
     #[test]
     fn get_name_with_name() {
         let section = Section::new("symbol name ");
         assert_eq!(section.get_name(), "symbol name")
     }
+
     #[test]
     fn add_symbol() {
         let mut section = Section::new("sec");
@@ -134,32 +138,27 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn add_instruction_single_symbol_single_instruction() {
         let mut section = Section::new("sec");
-        let add_instr_res = section.add_instruction(Instruction::from(""));
+        let add_instr_res = section.add_instruction(Instruction::new("", "", ""));
         assert_eq!(
             add_instr_res,
             Err("Attempted to add an instruction without first defining a symbol".to_string())
         );
-        assert_eq!(
-            section,
-            Section {
-                name: "sec".to_string(),
-                symbols: Vec::new(),
-            }
-        );
     }
+
     #[test]
     fn add_instruction_single_symbol_multiple_instructions() {
         let mut section = Section::new("sec");
         section.add_symbol(Symbol::new("sym1"));
-        let _ = section.add_instruction(Instruction::from("nop"));
-        let _ = section.add_instruction(Instruction::from("mov    -0x1198(%rbp),%rax"));
+        let _ = section.add_instruction(Instruction::new("nop", "", ""));
+        let _ = section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
 
         let mut comparison_sym = Symbol::new("sym1");
-        comparison_sym.add_instruction(Instruction::from("nop"));
-        comparison_sym.add_instruction(Instruction::from("mov    -0x1198(%rbp),%rax"));
+        comparison_sym.add_instruction(Instruction::new("nop", "", ""));
+        comparison_sym.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
         assert_eq!(
             section,
             Section {
@@ -168,20 +167,21 @@ mod tests {
             }
         );
     }
+
     #[test]
     fn add_instruction_multiple_symbols_multiple_instructions() {
         let mut section = Section::new("sec");
         section.add_symbol(Symbol::new("sym1"));
-        let _ = section.add_instruction(Instruction::from("nop"));
-        let _ = section.add_instruction(Instruction::from("mov    -0x1198(%rbp),%rax"));
+        let _ = section.add_instruction(Instruction::new("nop", "", ""));
+        let _ = section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
         section.add_symbol(Symbol::new("sym2"));
-        let _ = section.add_instruction(Instruction::from("lea    0x357d6(%rip),%rcx"));
+        let _ = section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
 
         let mut comparison_sym1 = Symbol::new("sym1");
-        comparison_sym1.add_instruction(Instruction::from("nop"));
-        comparison_sym1.add_instruction(Instruction::from("mov    -0x1198(%rbp),%rax"));
+        comparison_sym1.add_instruction(Instruction::new("nop", "", ""));
+        comparison_sym1.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
         let mut comparison_sym2 = Symbol::new("sym2");
-        comparison_sym2.add_instruction(Instruction::from("lea    0x357d6(%rip),%rcx"));
+        comparison_sym2.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
         assert_eq!(
             section,
             Section {
@@ -190,6 +190,7 @@ mod tests {
             }
         );
     }
+
     #[test]
     fn sort_symbols() {
         let mut section = Section::new("sec");
@@ -213,26 +214,31 @@ mod tests {
             }
         );
     }
+
     #[test]
     fn to_string_unnamed_empty_section() {
         let section = Section::new("");
         assert_eq!(section.to_string(), ":\n".to_string())
     }
+
     #[test]
     fn to_string_named_empty_section() {
         let section = Section::new("sec");
         assert_eq!(section.to_string(), "sec:\n".to_string())
     }
+
     #[test]
     fn to_string_named_and_non_empty_section() {
         let mut section = Section::new("sec");
         section.add_symbol(Symbol::new("sym1"));
-        let add_instr_res = section.add_instruction(Instruction::from("nop"));
+        let add_instr_res = section.add_instruction(Instruction::new("nop", "", ""));
         assert_eq!(add_instr_res, Ok(()));
-        let add_instr_res = section.add_instruction(Instruction::from("mov    -0x1198(%rbp),%rax"));
+        let add_instr_res =
+            section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
         assert_eq!(add_instr_res, Ok(()));
         section.add_symbol(Symbol::new("sym2"));
-        let add_instr_res = section.add_instruction(Instruction::from("lea    0x357d6(%rip),%rcx"));
+        let add_instr_res =
+            section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
         assert_eq!(add_instr_res, Ok(()));
 
         assert_eq!(

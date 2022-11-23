@@ -75,6 +75,7 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn new_symbol_with_name() {
         let symbol = Symbol::new("symbol name ");
@@ -86,47 +87,53 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn get_name_with_no_name() {
         let symbol = Symbol::new("");
         assert_eq!(symbol.get_name(), "")
     }
+
     #[test]
     fn get_name_with_name() {
         let symbol = Symbol::new("symbol name ");
         assert_eq!(symbol.get_name(), "symbol name")
     }
+
     #[test]
     fn add_instruction() {
         let mut symbol = Symbol::new("sym");
-        symbol.add_instruction(Instruction::from("nop"));
-        symbol.add_instruction(Instruction::from("bnd jmp <_init+0x20>"));
+        symbol.add_instruction(Instruction::new("nop", "", ""));
+        symbol.add_instruction(Instruction::new("bnd jmp", "<_init+0x20>", ""));
         assert_eq!(
             symbol,
             Symbol {
                 name: "sym".to_string(),
                 instructions: Vec::from([
-                    Instruction::from("nop"),
-                    Instruction::from("bnd jmp <_init+0x20>")
+                    Instruction::new("nop", "", ""),
+                    Instruction::new("bnd jmp", "<_init+0x20>", "")
                 ]),
             }
         )
     }
+
     #[test]
     fn to_string_unnamed_empty_symbol() {
         let symbol = Symbol::new("");
         assert_eq!(symbol.to_string(), ":\n".to_string())
     }
+
     #[test]
     fn to_string_named_empty_symbol() {
         let symbol = Symbol::new("sym");
         assert_eq!(symbol.to_string(), "sym:\n".to_string())
     }
+
     #[test]
     fn to_string_named_and_non_empty_symbol() {
         let mut symbol = Symbol::new("sym");
-        symbol.add_instruction(Instruction::from("nop"));
-        symbol.add_instruction(Instruction::from("bnd jmp <_init+0x20>"));
+        symbol.add_instruction(Instruction::new("nop", "", ""));
+        symbol.add_instruction(Instruction::new("bnd jmp", "<_init+0x20>", ""));
         assert_eq!(
             symbol.to_string(),
             "\
