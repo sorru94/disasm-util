@@ -1,3 +1,15 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: disasm-util
 Source: https://github.com/sorru94/disasm-util
+
+Files: Cargo.lock
+Copyright: 2022 SECO Mind Srl
+License: CC0-1.0
+
+Files: test-output-parsed
+Copyright: 2022 SECO Mind Srl
+License: CC0-1.0
+
+Files: test-output
+Copyright: 2022 SECO Mind Srl
+License: CC0-1.0
