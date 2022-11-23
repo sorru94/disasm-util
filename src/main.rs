@@ -18,6 +18,35 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::env;
+use std::fs::{write, File};
+use std::io::BufReader;
+use std::path::Path;
+use std::process::exit;
+
+mod disasm;
+
+use disasm::Disasm;
+
 fn main() {
-    println!("Hello, world!");
+    let args: Vec<String> = env::args().collect();
+
+    match args.get(1) {
+        None => {
+            println!("Specify the file to parse using \"cargo run -- <file_name>\"!");
+            exit(1);
+        }
+        Some(input_fp) if Path::new(input_fp).exists() => {
+            let fp = File::open(input_fp).expect("Error opening the file");
+
+            let disasm = Disasm::try_from(BufReader::new(fp)).unwrap();
+
+            let output_fp = format!("{input_fp}-parsed");
+            write(output_fp, disasm.to_string()).expect("Error writing the file");
+        }
+        Some(_) => {
+            println!("The specified input file does not exist!");
+            exit(1);
+        }
+    }
 }
