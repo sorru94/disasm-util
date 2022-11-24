@@ -67,12 +67,12 @@ mod tests {
     #[test]
     fn new_full_instruction() {
         let instruction =
-            Instruction::new("my opcode", "operand1, operand 2", "some kind of comment");
+            Instruction::new("opcode", "operand 1, operand 2", "some kind of comment");
         assert_eq!(
             instruction,
             Instruction {
-                opcode: "my opcode".to_string(),
-                _operands: "operand1, operand 2".to_string(),
+                opcode: "opcode".to_string(),
+                _operands: "operand 1, operand 2".to_string(),
                 _comment: "some kind of comment".to_string()
             }
         )
@@ -80,8 +80,8 @@ mod tests {
 
     #[test]
     fn to_string_only_opcode() {
-        let instruction = Instruction::new("my opcode", "", "");
-        assert_eq!(instruction.to_string(), "my opcode\n".to_string())
+        let instruction = Instruction::new("opcode", "", "");
+        assert_eq!(instruction.to_string(), "opcode\n".to_string())
     }
 
     #[test]

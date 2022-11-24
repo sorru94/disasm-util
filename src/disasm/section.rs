@@ -35,7 +35,7 @@ pub struct Section {
 impl Section {
     pub fn new(name: &str) -> Self {
         Section {
-            name: name.trim().to_string(),
+            name: name.to_string(),
             symbols: Vec::new(),
         }
     }
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn new_section_with_name() {
-        let section = Section::new(" Section name ");
+        let section = Section::new("Section name");
         assert_eq!(
             section,
             Section {
@@ -111,18 +111,6 @@ mod tests {
                 symbols: Vec::new(),
             }
         )
-    }
-
-    #[test]
-    fn get_name_with_no_name() {
-        let section = Section::new("");
-        assert_eq!(section.get_name(), "")
-    }
-
-    #[test]
-    fn get_name_with_name() {
-        let section = Section::new("symbol name ");
-        assert_eq!(section.get_name(), "symbol name")
     }
 
     #[test]
@@ -192,6 +180,18 @@ mod tests {
     }
 
     #[test]
+    fn get_name_with_no_name() {
+        let section = Section::new("");
+        assert_eq!(section.get_name(), "")
+    }
+
+    #[test]
+    fn get_name_with_name() {
+        let section = Section::new("symbol name");
+        assert_eq!(section.get_name(), "symbol name")
+    }
+
+    #[test]
     fn sort_symbols() {
         let mut section = Section::new("sec");
         section.add_symbol(Symbol::new("sym2"));
@@ -231,15 +231,20 @@ mod tests {
     fn to_string_named_and_non_empty_section() {
         let mut section = Section::new("sec");
         section.add_symbol(Symbol::new("sym1"));
-        let add_instr_res = section.add_instruction(Instruction::new("nop", "", ""));
-        assert_eq!(add_instr_res, Ok(()));
-        let add_instr_res =
-            section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
-        assert_eq!(add_instr_res, Ok(()));
+        assert_eq!(
+            section.add_instruction(Instruction::new("nop", "", "")),
+            Ok(())
+        );
+        assert_eq!(
+            section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", "")),
+            Ok(())
+        );
         section.add_symbol(Symbol::new("sym2"));
-        let add_instr_res =
-            section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
-        assert_eq!(add_instr_res, Ok(()));
+        assert_eq!(
+            section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", "")),
+            Ok(())
+        );
+        section.add_symbol(Symbol::new("sym3"));
 
         assert_eq!(
             section.to_string(),
@@ -250,6 +255,7 @@ sec:
         mov
     sym2:
         lea
+    sym3:
 "
             .to_string()
         )

@@ -34,7 +34,7 @@ pub struct Symbol {
 impl Symbol {
     pub fn new(name: &str) -> Self {
         Symbol {
-            name: name.trim().to_string(),
+            name: name.to_string(),
             instructions: Vec::new(),
         }
     }
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn new_symbol_with_name() {
-        let symbol = Symbol::new("symbol name ");
+        let symbol = Symbol::new("symbol name");
         assert_eq!(
             symbol,
             Symbol {
@@ -86,18 +86,6 @@ mod tests {
                 instructions: Vec::new(),
             }
         )
-    }
-
-    #[test]
-    fn get_name_with_no_name() {
-        let symbol = Symbol::new("");
-        assert_eq!(symbol.get_name(), "")
-    }
-
-    #[test]
-    fn get_name_with_name() {
-        let symbol = Symbol::new("symbol name ");
-        assert_eq!(symbol.get_name(), "symbol name")
     }
 
     #[test]
@@ -115,6 +103,18 @@ mod tests {
                 ]),
             }
         )
+    }
+
+    #[test]
+    fn get_name_with_no_name() {
+        let symbol = Symbol::new("");
+        assert_eq!(symbol.get_name(), "")
+    }
+
+    #[test]
+    fn get_name_with_name() {
+        let symbol = Symbol::new("symbol name ");
+        assert_eq!(symbol.get_name(), "symbol name ")
     }
 
     #[test]
