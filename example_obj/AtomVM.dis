@@ -1499,6 +1499,15 @@
         movzbl
         pop
         ret
+    <atom_string_len>:
+        push
+        mov
+        mov
+        mov
+        movzbl
+        movzbl
+        pop
+        ret
     <atom_string_to_c>:
         endbr64
         push
@@ -2816,6 +2825,9 @@
         mov
         jmp
         mov
+        call
+        mov
+        mov
         mov
         call
         mov
@@ -3847,6 +3859,21 @@
         mov
         leave
         ret
+    <bif_erlang_is_boolean_1>:
+        endbr64
+        push
+        mov
+        mov
+        mov
+        cmpq
+        je
+        cmpq
+        jne
+        mov
+        jmp
+        mov
+        pop
+        ret
     <bif_erlang_is_integer_1>:
         endbr64
         push
@@ -4245,6 +4272,17 @@
         mov
         mov
         call
+        mov
+        mov
+        call
+        test
+        je
+        mov
+        mov
+        mov
+        mov
+        call
+        jmp
         mov
         mov
         mov
@@ -11710,7 +11748,6 @@
         add
         mov
         mov
-        cltq
         mov
         call
         test
@@ -11799,7 +11836,6 @@
         call
         mov
         mov
-        cltq
         mov
         call
         test
@@ -11841,6 +11877,23 @@
         add
         mov
         mov
+        mov
+        call
+        test
+        jne
+        cmpq
+        setne
+        movzbl
+        test
+        je
+        mov
+        call
+        mov
+        mov
+        mov
+        movq
+        jmp
+        mov
         add
         mov
         mov
@@ -11865,8 +11918,9 @@
         and
         test
         jne
+        cmpq
+        je
         mov
-        cltq
         mov
         call
         mov
@@ -27031,6 +27085,7 @@
         mov
         mov
         jmp
+        movl
         mov
         mov
         call
@@ -42852,6 +42907,7 @@
         mov
         add
         mov
+        movq
         mov
         mov
         mov
@@ -43522,6 +43578,7 @@
         mov
         add
         mov
+        movq
         mov
         mov
         mov
@@ -56747,14 +56804,13 @@
         mov
         call
         mov
-        movl
+        movq
         movl
         movl
         jmp
         mov
-        cltq
         cmp
-        ja
+        jb
         mov
         cltq
         shl
@@ -56784,14 +56840,12 @@
         cmp
         jl
         mov
-        movslq
         mov
         mov
         mov
         call
         mov
         mov
-        movslq
         mov
         mov
         mov
@@ -56804,10 +56858,9 @@
         mov
         mov
         call
-        addl
+        addq
         jmp
         mov
-        movslq
         mov
         mov
         mov
@@ -56831,7 +56884,6 @@
         cmpl
         jns
         mov
-        movslq
         mov
         mov
         mov
@@ -56844,7 +56896,7 @@
         mov
         mov
         call
-        addl
+        addq
         jmp
         cmpl
         jle
@@ -56880,7 +56932,7 @@
         mov
         mov
         call
-        addl
+        addq
         addl
         addl
         mov
@@ -64831,24 +64883,6 @@
         call
         leave
         ret
-    <context_make_atom>:
-        push
-        mov
-        sub
-        mov
-        mov
-        mov
-        mov
-        mov
-        mov
-        mov
-        call
-        mov
-        mov
-        mov
-        call
-        leave
-        ret
     <context_memory_size>:
         push
         mov
@@ -65581,6 +65615,60 @@
         mov
         call
         test
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        sete
+        movzbl
+        and
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
         sete
         movzbl
         and
@@ -67099,7 +67187,6 @@
         push
         mov
         sub
-        mov
         mov
         mov
         mov
@@ -68626,6 +68713,48 @@
         nop
         leave
         ret
+    <globalcontext_unregister_process>:
+        endbr64
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        test
+        jne
+        mov
+        jmp
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        cmp
+        jne
+        mov
+        mov
+        add
+        mov
+        mov
+        call
+        mov
+        mov
+        call
+        mov
+        jmp
+        mov
+        mov
+        mov
+        mov
+        cmp
+        jne
+        mov
+        leave
+        ret
     <hash>:
         push
         mov
@@ -69146,26 +69275,6 @@
         mov
         call
         jmp
-        mov
-        mov
-        mov
-        mov
-        mov
-        mov
-        call
-        cmp
-        jne
-        call
-        mov
-        mov
-        call
-        mov
-        mov
-        mov
-        mov
-        mov
-        call
-        jmp
         cmpq
         jne
         mov
@@ -69254,6 +69363,54 @@
         mov
         mov
         add
+        mov
+        leave
+        ret
+    <interop_atom_to_string>:
+        endbr64
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        movslq
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        add
+        cltq
+        mov
+        call
+        mov
+        cmpq
+        sete
+        movzbl
+        test
+        je
+        mov
+        jmp
+        mov
+        lea
+        mov
+        mov
+        mov
+        mov
+        call
         mov
         leave
         ret
@@ -70452,6 +70609,38 @@
         mov
         cmp
         jne
+        mov
+        pop
+        ret
+    <linkedlist_remove>:
+        push
+        mov
+        mov
+        mov
+        mov
+        mov
+        cmp
+        jne
+        mov
+        movq
+        jmp
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        cmp
+        jne
+        mov
+        mov
+        mov
         mov
         pop
         ret
@@ -76914,7 +77103,6 @@
         call
         jmp
         movb
-        movq
         cmpl
         jne
         mov
@@ -76927,16 +77115,13 @@
         test
         je
         movb
-        movq
         mov
         call
         mov
         movq
-        mov
         lea
         mov
         lea
-        mov
         mov
         mov
         call
@@ -79858,13 +80043,20 @@
         test
         je
         mov
+        mov
+        call
+        test
+        sete
+        movzbl
+        test
+        je
+        mov
         call
         mov
         mov
         mov
-        lea
-        mov
         call
+        mov
         mov
         mov
         call
@@ -80174,6 +80366,7 @@
         mov
         call
         jmp
+        call
         cmpq
         jne
         mov
@@ -80624,10 +80817,43 @@
         mov
         mov
         mov
+        call
+        test
+        sete
+        movzbl
+        test
+        jne
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        test
+        jne
+        mov
+        call
+        cmp
+        jne
         mov
         call
         mov
+        mov
+        mov
         call
+        mov
+        mov
+        mov
+        call
+        jmp
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
         mov
         leave
         ret
@@ -81713,6 +81939,15 @@
         jne
         mov
         mov
+        mov
+        lea
+        mov
+        call
+        jmp
+        cmpq
+        jne
+        mov
+        mov
         call
         mov
         mov
@@ -81748,7 +81983,6 @@
         endbr64
         push
         mov
-        push
         sub
         mov
         mov
@@ -81759,12 +81993,6 @@
         lea
         mov
         call
-        mov
-        lea
-        mov
-        mov
-        call
-        mov
         mov
         mov
         cmp
@@ -81777,11 +82005,27 @@
         jmp
         mov
         mov
+        cmp
+        jne
         mov
+        imul
+        mov
+        movabs
+        mov
+        imul
+        mov
+        sar
+        sar
+        mov
+        sub
         lea
         mov
         mov
+        mov
         call
+        jmp
+        mov
+        mov
         cmp
         jne
         mov
@@ -81815,7 +82059,6 @@
         sub
         je
         call
-        mov
         leave
         ret
     <nif_erlang_term_to_binary>:
@@ -82263,6 +82506,69 @@
         mov
         mov
         call
+        mov
+        mov
+        leave
+        ret
+    <nif_erlang_unregister_1>:
+        endbr64
+        push
+        mov
+        push
+        sub
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        test
+        sete
+        movzbl
+        test
+        je
+        mov
+        call
+        mov
+        mov
+        mov
+        lea
+        mov
+        call
+        mov
+        mov
+        call
+        jmp
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        movzbl
+        xor
+        movzbl
+        test
+        je
+        mov
+        call
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        call
+        jmp
         mov
         mov
         leave
@@ -83599,6 +83905,15 @@
         mov
         call
         mov
+        movl
+        cmpq
+        jne
+        mov
+        mov
+        mov
+        call
+        mov
+        movl
         mov
         mov
         call
@@ -83627,7 +83942,43 @@
         call
         mov
         cmpq
-        jg
+        jne
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        lea
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        call
+        jmp
+        cmpq
+        jns
         mov
         mov
         mov
@@ -83693,6 +84044,10 @@
         call
         mov
         mov
+        mov
+        cmp
+        sete
+        movzbl
         mov
         mov
         mov
@@ -100931,6 +101286,7 @@
         mov
         call
         call
+        movq
         mov
         mov
         add
@@ -101181,6 +101537,7 @@
         mov
         call
         call
+        movq
         mov
         mov
         add
@@ -111247,10 +111604,46 @@
         cmp
         jne
         mov
+        call
+        mov
+        mov
+        mov
+        mov
         mov
         call
         mov
+        mov
         call
+        jmp
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        jne
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        jmp
+        lea
+        mov
+        mov
+        mov
+        call
+        cmp
+        jne
+        mov
+        mov
+        call
+        mov
         mov
         mov
         mov
@@ -111285,22 +111678,12 @@
         jne
         mov
         mov
-        call
-        mov
-        mov
-        mov
-        mov
-        mov
         mov
         call
-        jmp
-        lea
         mov
         mov
         mov
-        call
-        cmp
-        jne
+        mov
         mov
         mov
         call
@@ -111352,6 +111735,104 @@
         jmp
         mov
         movzwl
+        mov
+        mov
+        mov
+        mov
+        call
+        leave
+        ret
+    <socket_driver_controlling_process>:
+        endbr64
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        test
+        sete
+        movzbl
+        test
+        je
+        mov
+        mov
+        mov
+        call
+        test
+        setne
+        movzbl
+        test
+        je
+        call
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        jmp
+        mov
+        mov
+        cmp
+        setne
+        movzbl
+        test
+        je
+        mov
+        mov
+        mov
+        call
+        test
+        setne
+        movzbl
+        test
+        je
+        call
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        call
+        lea
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        jmp
         mov
         mov
         mov
@@ -114301,6 +114782,28 @@
         or
         leave
         ret
+    <term_alloc_tuple>:
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        lea
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        shl
+        mov
+        mov
+        mov
+        mov
+        or
+        leave
+        ret
     <term_binary_data>:
         push
         mov
@@ -116627,6 +117130,29 @@
         movzbl
         leave
         ret
+    <term_equals>:
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        cmp
+        jne
+        mov
+        jmp
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        test
+        sete
+        movzbl
+        leave
+        ret
     <term_exactly_equals>:
         push
         mov
@@ -116648,6 +117174,46 @@
         test
         sete
         movzbl
+        leave
+        ret
+    <term_find_map_pos>:
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        call
+        mov
+        movl
+        jmp
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        test
+        je
+        mov
+        jmp
+        addl
+        mov
+        cmp
+        jl
+        mov
         leave
         ret
     <term_find_map_pos>:
@@ -117866,6 +118432,34 @@
         mov
         mov
         mov
+        leave
+        ret
+    <term_get_map_assoc>:
+        endbr64
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        cmpl
+        jne
+        mov
+        call
+        jmp
+        mov
+        movslq
+        mov
+        mov
+        mov
+        call
         leave
         ret
     <term_get_map_key>:
@@ -122510,6 +123104,28 @@
         nop
         leave
         ret
+    <term_put_tuple_element>:
+        push
+        mov
+        sub
+        mov
+        mov
+        mov
+        mov
+        mov
+        call
+        mov
+        mov
+        add
+        mov
+        lea
+        mov
+        add
+        mov
+        mov
+        nop
+        leave
+        ret
     <term_refc_binary_is_const>:
         push
         mov
@@ -123181,6 +123797,14 @@
         add
         mov
         leave
+        ret
+    <term_to_term_ptr>:
+        push
+        mov
+        mov
+        mov
+        and
+        pop
         ret
     <term_to_term_ptr>:
         push

@@ -173,6 +173,15 @@ impl TryFrom<BufReader<File>> for Disasm {
     }
 }
 
+impl TryFrom<String> for Disasm {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        let lines = text.lines().map(|l| l.to_string()).collect::<Vec<_>>();
+        Disasm::from_lines(lines)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

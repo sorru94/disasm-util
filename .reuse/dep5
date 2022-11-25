@@ -6,10 +6,6 @@ Files: Cargo.lock
 Copyright: 2022 SECO Mind Srl
 License: CC0-1.0
 
-Files: test-output-parsed
-Copyright: 2022 SECO Mind Srl
-License: CC0-1.0
-
-Files: test-output
+Files: example_obj/*
 Copyright: 2022 SECO Mind Srl
 License: CC0-1.0
