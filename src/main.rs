@@ -18,7 +18,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::env;
+use clap::Parser;
 use std::fs::{write, File};
 use std::io::BufReader;
 use std::path::Path;
@@ -28,25 +28,32 @@ mod disasm;
 
 use disasm::Disasm;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, value_parser = path_parse)]
+    path: String,
+}
+
+fn path_parse(path: &str) -> Result<String, String> {
+    if Path::new(path).exists() {
+        Ok(path.to_string())
+    } else {
+        Err(format!("The specified input file does not exist!"))
+    }
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let cli = Cli::parse();
 
-    match args.get(1) {
-        None => {
-            println!("Specify the file to parse using \"cargo run -- <file_name>\"!");
-            exit(1);
-        }
-        Some(input_fp) if Path::new(input_fp).exists() => {
-            let fp = File::open(input_fp).expect("Error opening the file");
+    let fp = File::open(&cli.path).expect("Error opening the file");
 
-            let disasm = Disasm::try_from(BufReader::new(fp)).unwrap();
-
-            let output_fp = format!("{input_fp}-parsed");
-            write(output_fp, disasm.to_string()).expect("Error writing the file");
-        }
-        Some(_) => {
-            println!("The specified input file does not exist!");
-            exit(1);
+    match Disasm::try_from(BufReader::new(fp)) {
+        Ok(disasm) => write(format!("{}-parsed", cli.path), disasm.to_string())
+            .expect("Error writing the file"),
+        Err(msg) => {
+            println!("Error: {}", msg);
+            exit(1)
         }
     }
 }
