@@ -69,12 +69,7 @@ fn main() -> Result<(), String> {
     let objdump = cli.path_objdump.unwrap_or("objdump".to_string());
 
     let objdump_res = Command::new(&objdump)
-        .args([
-            "-d",
-            "--no-addresses",
-            "--no-show-raw-insn",
-            &cli.path_obj_file,
-        ])
+        .args(["-d", "--no-show-raw-insn", &cli.path_obj_file])
         .output()
         .map_err(|e| match e.kind() {
             ErrorKind::NotFound => {

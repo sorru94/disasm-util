@@ -116,13 +116,13 @@ mod tests {
     #[test]
     fn add_symbol() {
         let mut section = Section::new("sec");
-        section.add_symbol(Symbol::new("sym1"));
-        section.add_symbol(Symbol::new("sym2"));
+        section.add_symbol(Symbol::new("addr", "sym1"));
+        section.add_symbol(Symbol::new("addr", "sym2"));
         assert_eq!(
             section,
             Section {
                 name: "sec".to_string(),
-                symbols: Vec::from([Symbol::new("sym1"), Symbol::new("sym2")]),
+                symbols: Vec::from([Symbol::new("addr", "sym1"), Symbol::new("addr", "sym2")]),
             }
         )
     }
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn add_instruction_single_symbol_single_instruction() {
         let mut section = Section::new("sec");
-        let add_instr_res = section.add_instruction(Instruction::new("", "", ""));
+        let add_instr_res = section.add_instruction(Instruction::new("addr", "", "", ""));
         assert_eq!(
             add_instr_res,
             Err("Attempted to add an instruction without first defining a symbol".to_string())
@@ -140,13 +140,13 @@ mod tests {
     #[test]
     fn add_instruction_single_symbol_multiple_instructions() {
         let mut section = Section::new("sec");
-        section.add_symbol(Symbol::new("sym1"));
-        let _ = section.add_instruction(Instruction::new("nop", "", ""));
-        let _ = section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
+        section.add_symbol(Symbol::new("addr", "sym1"));
+        let _ = section.add_instruction(Instruction::new("addr", "nop", "", ""));
+        let _ = section.add_instruction(Instruction::new("addr", "mov", "-0x1198(%rbp),%rax", ""));
 
-        let mut comparison_sym = Symbol::new("sym1");
-        comparison_sym.add_instruction(Instruction::new("nop", "", ""));
-        comparison_sym.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
+        let mut comparison_sym = Symbol::new("addr", "sym1");
+        comparison_sym.add_instruction(Instruction::new("addr", "nop", "", ""));
+        comparison_sym.add_instruction(Instruction::new("addr", "mov", "-0x1198(%rbp),%rax", ""));
         assert_eq!(
             section,
             Section {
@@ -159,17 +159,17 @@ mod tests {
     #[test]
     fn add_instruction_multiple_symbols_multiple_instructions() {
         let mut section = Section::new("sec");
-        section.add_symbol(Symbol::new("sym1"));
-        let _ = section.add_instruction(Instruction::new("nop", "", ""));
-        let _ = section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
-        section.add_symbol(Symbol::new("sym2"));
-        let _ = section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
+        section.add_symbol(Symbol::new("addr", "sym1"));
+        let _ = section.add_instruction(Instruction::new("addr", "nop", "", ""));
+        let _ = section.add_instruction(Instruction::new("addr", "mov", "-0x1198(%rbp),%rax", ""));
+        section.add_symbol(Symbol::new("addr", "sym2"));
+        let _ = section.add_instruction(Instruction::new("addr", "lea", "0x357d6(%rip),%rcx", ""));
 
-        let mut comparison_sym1 = Symbol::new("sym1");
-        comparison_sym1.add_instruction(Instruction::new("nop", "", ""));
-        comparison_sym1.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", ""));
-        let mut comparison_sym2 = Symbol::new("sym2");
-        comparison_sym2.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", ""));
+        let mut comparison_sym1 = Symbol::new("addr", "sym1");
+        comparison_sym1.add_instruction(Instruction::new("addr", "nop", "", ""));
+        comparison_sym1.add_instruction(Instruction::new("addr", "mov", "-0x1198(%rbp),%rax", ""));
+        let mut comparison_sym2 = Symbol::new("addr", "sym2");
+        comparison_sym2.add_instruction(Instruction::new("addr", "lea", "0x357d6(%rip),%rcx", ""));
         assert_eq!(
             section,
             Section {
@@ -194,22 +194,22 @@ mod tests {
     #[test]
     fn sort_symbols() {
         let mut section = Section::new("sec");
-        section.add_symbol(Symbol::new("sym2"));
-        section.add_symbol(Symbol::new("sym2"));
-        section.add_symbol(Symbol::new("sym1"));
-        section.add_symbol(Symbol::new("zsym"));
-        section.add_symbol(Symbol::new("asym"));
+        section.add_symbol(Symbol::new("addr", "sym2"));
+        section.add_symbol(Symbol::new("addr", "sym2"));
+        section.add_symbol(Symbol::new("addr", "sym1"));
+        section.add_symbol(Symbol::new("addr", "zsym"));
+        section.add_symbol(Symbol::new("addr", "asym"));
         section.sort_symbols();
         assert_eq!(
             section,
             Section {
                 name: "sec".to_string(),
                 symbols: Vec::from([
-                    Symbol::new("asym"),
-                    Symbol::new("sym1"),
-                    Symbol::new("sym2"),
-                    Symbol::new("sym2"),
-                    Symbol::new("zsym")
+                    Symbol::new("addr", "asym"),
+                    Symbol::new("addr", "sym1"),
+                    Symbol::new("addr", "sym2"),
+                    Symbol::new("addr", "sym2"),
+                    Symbol::new("addr", "zsym")
                 ]),
             }
         );
@@ -230,21 +230,21 @@ mod tests {
     #[test]
     fn to_string_named_and_non_empty_section() {
         let mut section = Section::new("sec");
-        section.add_symbol(Symbol::new("sym1"));
+        section.add_symbol(Symbol::new("addr", "sym1"));
         assert_eq!(
-            section.add_instruction(Instruction::new("nop", "", "")),
+            section.add_instruction(Instruction::new("addr", "nop", "", "")),
             Ok(())
         );
         assert_eq!(
-            section.add_instruction(Instruction::new("mov", "-0x1198(%rbp),%rax", "")),
+            section.add_instruction(Instruction::new("addr", "mov", "-0x1198(%rbp),%rax", "")),
             Ok(())
         );
-        section.add_symbol(Symbol::new("sym2"));
+        section.add_symbol(Symbol::new("addr", "sym2"));
         assert_eq!(
-            section.add_instruction(Instruction::new("lea", "0x357d6(%rip),%rcx", "")),
+            section.add_instruction(Instruction::new("addr", "lea", "0x357d6(%rip),%rcx", "")),
             Ok(())
         );
-        section.add_symbol(Symbol::new("sym3"));
+        section.add_symbol(Symbol::new("addr", "sym3"));
 
         assert_eq!(
             section.to_string(),

@@ -22,7 +22,7 @@
 //!
 //! This module contains the Disasm struct which can be used to parse the output file of a objdump command.
 //! This file operates over files generated with the following combination of flags:
-//! objdump -d --no-addresses --no-show-raw-insn
+//! objdump -d --no-show-raw-insn
 use std::fmt;
 
 mod instruction;
@@ -60,36 +60,42 @@ impl Disasm {
     fn process_other_line(&mut self, line: &str) -> Result<(), String> {
         lazy_static! {
             static ref RE_SECTION: Regex =
-                Regex::new(r"^Disassembly of section (?P<sec_name>.[[:alnum:].]+):$").unwrap();
-            static ref RE_SYMBOL: Regex = Regex::new(r"^(?P<sym_name><.+>):$").unwrap();
+                Regex::new(r"^Disassembly of section (?P<name>.[[:alnum:].]+):$").unwrap();
+            static ref RE_SYMBOL: Regex = Regex::new(
+                r"(?x)^
+                    (?P<addr>[[:xdigit:]]{16}?)
+                    [[:space:]]
+                    (?P<name><.+>):
+                    $"
+            )
+            .unwrap();
             static ref RE_INSTRUCTION: Regex = Regex::new(
                 r"(?x)^
-                    [[:space:]]
-                    (?P<opcode>  [[[:lower:]][[:digit:]][[:space:]]]*)
-                    (?P<operands>[[:space:]]+[^[[:space:]]]+)??
-                    ([[:space:]]+\#(?P<comment>.*))??
+                    [[:space:]]+
+                    (?P<addr>[[:xdigit:]]+):
+                    (?P<opcode>([[:space:]][[:lower:]][[[:lower:]][[:digit:]]]*)+)
+                    (?P<operands>([[:space:]]+[^\#]*)*?)
+                    ([[:space:]]+\#(?P<comment>.*))?
                     [[:space:]]*
                     $"
             )
             .unwrap();
         }
 
-        if let Some(sec_name) = RE_SECTION
-            .captures(&line)
-            .and_then(|cap| cap.name("sec_name").map(|sec| sec.as_str()))
-        {
-            self.add_section(Section::new(sec_name));
+        if let Some(sec_cap) = RE_SECTION.captures(&line) {
+            let name = sec_cap.name("name").map_or("", |m| m.as_str());
+            self.add_section(Section::new(name));
             Ok(())
-        } else if let Some(sym_name) = RE_SYMBOL
-            .captures(&line)
-            .and_then(|cap| cap.name("sym_name").map(|sym| sym.as_str()))
-        {
-            self.add_symbol(Symbol::new(sym_name.trim()))
+        } else if let Some(sym_cap) = RE_SYMBOL.captures(&line) {
+            let addr = sym_cap.name("addr").map_or("", |m| m.as_str());
+            let name = sym_cap.name("name").map_or("", |m| m.as_str());
+            self.add_symbol(Symbol::new(addr, name))
         } else if let Some(ins_cap) = RE_INSTRUCTION.captures(&line) {
+            let address = ins_cap.name("addr").map_or("", |m| m.as_str()).trim();
             let opcode = ins_cap.name("opcode").map_or("", |m| m.as_str()).trim();
             let operands = ins_cap.name("operands").map_or("", |m| m.as_str()).trim();
             let comment = ins_cap.name("comment").map_or("", |m| m.as_str()).trim();
-            self.add_instruction(Instruction::new(opcode, operands, comment))
+            self.add_instruction(Instruction::new(address, opcode, operands, comment))
         } else {
             Err(format!(
                 "Unrecognized format for the following line: '{line}'"
@@ -174,31 +180,31 @@ folder\file:     file format some_format
 
 Disassembly of section sec1:
 
-<sym1>:
-	opc1
-	opc2    %opr1,%opr2
-	opc3    %opr3                   # comment1
+0000000000006000 <sym1>:
+    6000:	opc1
+    6002:	opc2    %opr1,%opr2
+    6004:	opc3    %opr3                   # comment1
 
-<sym2>:
-    opc4   %opr4  # comment2
+0000000000006020 <sym2>:
+    60020:	opc4   %opr4  # comment2
 
 Disassembly of section sec2:
 
-<sym3>:
+0000000000006030 <sym3>:
 "
         .to_string();
 
         let result = Disasm::try_from(lines);
 
         let mut sec1 = Section::new("sec1");
-        sec1.add_symbol(Symbol::new("<sym1>"));
-        let _ = sec1.add_instruction(Instruction::new("opc1", "", ""));
-        let _ = sec1.add_instruction(Instruction::new("opc2", "%opr1,%opr2", ""));
-        let _ = sec1.add_instruction(Instruction::new("opc3", "%opr3", "comment1"));
-        sec1.add_symbol(Symbol::new("<sym2>"));
-        let _ = sec1.add_instruction(Instruction::new("opc4", "%opr4", "comment2"));
+        sec1.add_symbol(Symbol::new("0000000000006000", "<sym1>"));
+        let _ = sec1.add_instruction(Instruction::new("6000", "opc1", "", ""));
+        let _ = sec1.add_instruction(Instruction::new("6002", "opc2", "%opr1,%opr2", ""));
+        let _ = sec1.add_instruction(Instruction::new("6004", "opc3", "%opr3", "comment1"));
+        sec1.add_symbol(Symbol::new("0000000000006020", "<sym2>"));
+        let _ = sec1.add_instruction(Instruction::new("60020", "opc4", "%opr4", "comment2"));
         let mut sec2 = Section::new("sec2");
-        sec2.add_symbol(Symbol::new("<sym3>"));
+        sec2.add_symbol(Symbol::new("0000000000006030", "<sym3>"));
 
         match result {
             Ok(disasm) => assert_eq!(
@@ -273,11 +279,11 @@ Disassembly of section sec%1:
     }
 
     #[test]
-    fn try_from_incorrectly_formatted_symbol_missing_start_lt() {
+    fn try_from_incorrectly_formatted_symbol_missing_start_memory() {
         let lines = r"
 folder\file:     file format some_format
 Disassembly of section sec1:
-sym1>:
+ <sym1>:
 "
         .to_string();
 
@@ -285,7 +291,30 @@ sym1>:
 
         match result {
             Ok(_) => assert!(false),
-            Err(msg) => assert_eq!(&msg, "Unrecognized format for the following line: 'sym1>:'"),
+            Err(msg) => assert_eq!(
+                &msg,
+                "Unrecognized format for the following line: ' <sym1>:'"
+            ),
+        }
+    }
+
+    #[test]
+    fn try_from_incorrectly_formatted_symbol_missing_start_lt() {
+        let lines = r"
+folder\file:     file format some_format
+Disassembly of section sec1:
+0000000000006030 sym1>:
+"
+        .to_string();
+
+        let result = Disasm::try_from(lines);
+
+        match result {
+            Ok(_) => assert!(false),
+            Err(msg) => assert_eq!(
+                &msg,
+                "Unrecognized format for the following line: '0000000000006030 sym1>:'"
+            ),
         }
     }
 
@@ -294,7 +323,7 @@ sym1>:
         let lines = r"
 folder\file:     file format some_format
 Disassembly of section sec1:
-<sym1
+0000000000006030 <sym1
 "
         .to_string();
 
@@ -302,17 +331,20 @@ Disassembly of section sec1:
 
         match result {
             Ok(_) => assert!(false),
-            Err(msg) => assert_eq!(&msg, "Unrecognized format for the following line: '<sym1'"),
+            Err(msg) => assert_eq!(
+                &msg,
+                "Unrecognized format for the following line: '0000000000006030 <sym1'"
+            ),
         }
     }
 
     #[test]
-    fn try_from_incorrectly_formatted_instruction_missing_leading_space() {
+    fn try_from_incorrectly_formatted_instruction_missing_leading_spaces() {
         let lines = r"
 folder\file:     file format some_format
 Disassembly of section sec1:
-<sym1>:
-opc1 opc2    %opr1,%opr2          # comment1
+0000000000006030 <sym1>:
+6000:	opc1 opc2    %opr1,%opr2          # comment1
 "
         .to_string();
 
@@ -320,7 +352,25 @@ opc1 opc2    %opr1,%opr2          # comment1
 
         match result {
             Ok(_) => assert!(false),
-            Err(msg) => assert_eq!(&msg, "Unrecognized format for the following line: 'opc1 opc2    %opr1,%opr2          # comment1'"),
+            Err(msg) => assert_eq!(&msg, "Unrecognized format for the following line: '6000:	opc1 opc2    %opr1,%opr2          # comment1'"),
+        }
+    }
+
+    #[test]
+    fn try_from_incorrectly_formatted_instruction_missing_memory() {
+        let lines = r"
+folder\file:     file format some_format
+Disassembly of section sec1:
+0000000000006030 <sym1>:
+    :	opc1 opc2    %opr1,%opr2          # comment1
+"
+        .to_string();
+
+        let result = Disasm::try_from(lines);
+
+        match result {
+            Ok(_) => assert!(false),
+            Err(msg) => assert_eq!(&msg, "Unrecognized format for the following line: '    :	opc1 opc2    %opr1,%opr2          # comment1'"),
         }
     }
 
@@ -329,8 +379,8 @@ opc1 opc2    %opr1,%opr2          # comment1
         let lines = r"
 folder\file:     file format some_format
 Disassembly of section sec1:
-<sym1>:
-	Opc1 opc2    %opr1,%opr2          # comment1
+0000000000006030 <sym1>:
+    0000:	Opc1 opc2    %opr1,%opr2          # comment1
 "
         .to_string();
 
@@ -339,7 +389,7 @@ Disassembly of section sec1:
         match result {
             Ok(_) => assert!(false),
             Err(msg) => assert_eq!(&msg,
-                "Unrecognized format for the following line: '	Opc1 opc2    %opr1,%opr2          # comment1'"),
+                "Unrecognized format for the following line: '    0000:	Opc1 opc2    %opr1,%opr2          # comment1'"),
         }
     }
 
@@ -348,7 +398,7 @@ Disassembly of section sec1:
         let lines = r"
 folder\file:     file format some_format
 
-<sym1>:
+0000000000006030 <sym1>:
 "
         .to_string();
 
@@ -368,7 +418,7 @@ folder\file:     file format some_format
         let lines = r"
 folder\file:     file format some_format
 
-	opc1
+    6000:	opc1
 "
         .to_string();
 
@@ -388,13 +438,13 @@ folder\file:     file format some_format
         let lines = r"
 folder\file:     file format some_format
 Disassembly of section abb:
-<zsym1>:
-<asym2>:
-<bsym4>:
-<bsym3>:
+0000000000006000 <zsym1>:
+0000000000006001 <asym2>:
+0000000000006002 <bsym4>:
+0000000000006003 <bsym3>:
 Disassembly of section aaa:
-<sym3>:
-<sym1>:
+0000000000006004 <sym3>:
+0000000000006005 <sym1>:
 Disassembly of section adc:
 Disassembly of section abc:
 Disassembly of section acc:
@@ -404,13 +454,13 @@ Disassembly of section acc:
         let result = Disasm::try_from(lines);
 
         let mut sec1 = Section::new("aaa");
-        sec1.add_symbol(Symbol::new("<sym1>"));
-        sec1.add_symbol(Symbol::new("<sym3>"));
+        sec1.add_symbol(Symbol::new("0000000000006005", "<sym1>"));
+        sec1.add_symbol(Symbol::new("0000000000006004", "<sym3>"));
         let mut sec2 = Section::new("abb");
-        sec2.add_symbol(Symbol::new("<asym2>"));
-        sec2.add_symbol(Symbol::new("<bsym3>"));
-        sec2.add_symbol(Symbol::new("<bsym4>"));
-        sec2.add_symbol(Symbol::new("<zsym1>"));
+        sec2.add_symbol(Symbol::new("0000000000006001", "<asym2>"));
+        sec2.add_symbol(Symbol::new("0000000000006003", "<bsym3>"));
+        sec2.add_symbol(Symbol::new("0000000000006002", "<bsym4>"));
+        sec2.add_symbol(Symbol::new("0000000000006000", "<zsym1>"));
         let sec3 = Section::new("abc");
         let sec4 = Section::new("acc");
         let sec5 = Section::new("adc");
@@ -431,17 +481,17 @@ Disassembly of section acc:
     #[test]
     fn to_string() {
         let mut sec1 = Section::new("aaa");
-        sec1.add_symbol(Symbol::new("<sym1>"));
-        sec1.add_symbol(Symbol::new("<sym3>"));
-        let _ = sec1.add_instruction(Instruction::new("opc5", "", ""));
-        let _ = sec1.add_instruction(Instruction::new("opc3", "", ""));
+        sec1.add_symbol(Symbol::new("addr", "<sym1>"));
+        sec1.add_symbol(Symbol::new("addr", "<sym3>"));
+        let _ = sec1.add_instruction(Instruction::new("addr", "opc5", "", ""));
+        let _ = sec1.add_instruction(Instruction::new("addr", "opc3", "", ""));
         let sec2 = Section::new("abc");
         let mut sec3 = Section::new("abb");
-        sec3.add_symbol(Symbol::new("<zsym2>"));
-        let _ = sec3.add_instruction(Instruction::new("opc1", "", ""));
-        let _ = sec3.add_instruction(Instruction::new("opc2", "opr1,opr2", ""));
-        let _ = sec3.add_instruction(Instruction::new("opc4", "opr3", "comment1"));
-        sec3.add_symbol(Symbol::new("<asym1>"));
+        sec3.add_symbol(Symbol::new("addr", "<zsym2>"));
+        let _ = sec3.add_instruction(Instruction::new("addr", "opc1", "", ""));
+        let _ = sec3.add_instruction(Instruction::new("addr", "opc2", "opr1,opr2", ""));
+        let _ = sec3.add_instruction(Instruction::new("addr", "opc4", "opr3", "comment1"));
+        sec3.add_symbol(Symbol::new("addr", "<asym1>"));
         let disasm = Disasm {
             _file_name: "folder\\file".to_string(),
             _file_format: "some_format".to_string(),

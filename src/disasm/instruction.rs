@@ -26,14 +26,16 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Instruction {
+    _addr: String,
     opcode: String,
     _operands: String,
     _comment: String,
 }
 
 impl Instruction {
-    pub fn new(opcode: &str, operands: &str, comment: &str) -> Self {
+    pub fn new(addr: &str, opcode: &str, operands: &str, comment: &str) -> Self {
         Instruction {
+            _addr: addr.to_string(),
             opcode: opcode.to_string(),
             _operands: operands.to_string(),
             _comment: comment.to_string(),
@@ -53,10 +55,11 @@ mod tests {
 
     #[test]
     fn new_empty_instruction() {
-        let instruction = Instruction::new("", "", "");
+        let instruction = Instruction::new("", "", "", "");
         assert_eq!(
             instruction,
             Instruction {
+                _addr: "".to_string(),
                 opcode: "".to_string(),
                 _operands: "".to_string(),
                 _comment: "".to_string()
@@ -66,11 +69,16 @@ mod tests {
 
     #[test]
     fn new_full_instruction() {
-        let instruction =
-            Instruction::new("opcode", "operand 1, operand 2", "some kind of comment");
+        let instruction = Instruction::new(
+            "addr",
+            "opcode",
+            "operand 1, operand 2",
+            "some kind of comment",
+        );
         assert_eq!(
             instruction,
             Instruction {
+                _addr: "addr".to_string(),
                 opcode: "opcode".to_string(),
                 _operands: "operand 1, operand 2".to_string(),
                 _comment: "some kind of comment".to_string()
@@ -80,13 +88,13 @@ mod tests {
 
     #[test]
     fn to_string_only_opcode() {
-        let instruction = Instruction::new("opcode", "", "");
+        let instruction = Instruction::new("addr", "opcode", "", "");
         assert_eq!(instruction.to_string(), "opcode\n".to_string())
     }
 
     #[test]
     fn to_string_complete() {
-        let instruction = Instruction::new("opcode", "operands", "comment");
+        let instruction = Instruction::new("addr", "opcode", "operands", "comment");
         assert_eq!(instruction.to_string(), "opcode\n".to_string())
     }
 }
