@@ -35,7 +35,7 @@ pub struct Section {
 impl Section {
     pub fn new(name: &str) -> Self {
         Section {
-            name: name.trim().to_string(),
+            name: name.to_string(),
             symbols: Vec::new(),
         }
     }
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn new_section_with_name_ok() {
-        let section = Section::new(" Section name ");
+        let section = Section::new("Section name");
         assert_eq!(
             section,
             Section {
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn get_name_with_name_ok() {
-        let section = Section::new("symbol name ");
+        let section = Section::new("symbol name");
         assert_eq!(section.get_name(), "symbol name")
     }
 

@@ -19,10 +19,11 @@
  */
 
 use clap::Parser;
-use std::fs::{write, File};
-use std::io::BufReader;
+use std::fs::write;
+use std::io::{self, ErrorKind, Write};
 use std::path::Path;
-use std::process::exit;
+use std::process::Command;
+use std::str;
 
 mod disasm;
 
@@ -31,29 +32,73 @@ use disasm::Disasm;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[arg(short, long, value_parser = path_parse)]
-    path: String,
+    #[arg(
+        value_parser = path_parse,
+        value_name = "OBJ-FILE",
+        help="Disassemble <OBJ-FILE>"
+    )]
+    path_obj_file: String,
+    #[arg(
+        short='e',
+        long = "executable",
+        value_name = "FILE",
+        value_parser = path_parse,
+        help="Use the objdump executable <FILE>"
+    )]
+    path_objdump: Option<String>,
+    #[arg(
+        short = 'o',
+        long = "out",
+        value_name = "FILE",
+        help = "Place the output into <FILE>"
+    )]
+    path_out_file: Option<String>,
 }
 
 fn path_parse(path: &str) -> Result<String, String> {
-    if Path::new(path).exists() {
+    if Path::new(path).is_file() {
         Ok(path.to_string())
     } else {
-        Err(format!("The specified input file does not exist!"))
+        Err(format!("File does not exist!"))
     }
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let cli = Cli::parse();
 
-    let fp = File::open(&cli.path).expect("Error opening the file");
+    let objdump = cli.path_objdump.unwrap_or("objdump".to_string());
 
-    match Disasm::try_from(BufReader::new(fp)) {
-        Ok(disasm) => write(format!("{}-parsed", cli.path), disasm.to_string())
-            .expect("Error writing the file"),
-        Err(msg) => {
-            println!("Error: {}", msg);
-            exit(1)
-        }
+    let objdump_res = Command::new(&objdump)
+        .args([
+            "-d",
+            "--no-addresses",
+            "--no-show-raw-insn",
+            &cli.path_obj_file,
+        ])
+        .output()
+        .map_err(|e| match e.kind() {
+            ErrorKind::NotFound => {
+                "'objdump' was not found! Check your PATH or explicitly provide an executable"
+                    .to_string()
+            }
+            _ => e.to_string(),
+        })?;
+
+    let stderr = str::from_utf8(&objdump_res.stderr).map_err(|msg| msg.to_string())?;
+    if !stderr.is_empty() {
+        return Err(stderr.to_string());
+    }
+
+    let stdout = str::from_utf8(&objdump_res.stdout)
+        .map_err(|msg| msg.to_string())?
+        .to_string();
+
+    let disasm = Disasm::try_from(stdout)?.to_string();
+
+    match cli.path_out_file {
+        Some(file) => write(file, disasm).map_err(|msg| msg.to_string()),
+        None => io::stdout()
+            .write_all(disasm.as_bytes())
+            .map_err(|msg| msg.to_string()),
     }
 }

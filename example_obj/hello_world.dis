@@ -1,0 +1,111 @@
+.fini:
+    <_fini>:
+        endbr64
+        sub
+        add
+        ret
+.init:
+    <_init>:
+        endbr64
+        sub
+        mov
+        test
+        je
+        call
+        add
+        ret
+.plt:
+    <.plt>:
+        push
+        bnd jmp
+        nopl
+        endbr64
+        push
+        bnd jmp
+        nop
+.plt.got:
+    <__cxa_finalize@plt>:
+        endbr64
+        bnd jmp
+        nopl
+.plt.sec:
+    <printf@plt>:
+        endbr64
+        bnd jmp
+        nopl
+.text:
+    <__do_global_dtors_aux>:
+        endbr64
+        cmpb
+        jne
+        push
+        cmpq
+        mov
+        je
+        mov
+        call
+        call
+        movb
+        pop
+        ret
+        nopl
+        ret
+        nopl
+    <_start>:
+        endbr64
+        xor
+        mov
+        pop
+        mov
+        and
+        push
+        push
+        xor
+        xor
+        lea
+        call
+        hlt
+        cs nopw
+    <deregister_tm_clones>:
+        lea
+        lea
+        cmp
+        je
+        mov
+        test
+        je
+        jmp
+        nopl
+        ret
+        nopl
+    <frame_dummy>:
+        endbr64
+        jmp
+    <main>:
+        endbr64
+        push
+        mov
+        lea
+        mov
+        mov
+        call
+        mov
+        pop
+        ret
+    <register_tm_clones>:
+        lea
+        lea
+        sub
+        mov
+        shr
+        sar
+        add
+        sar
+        je
+        mov
+        test
+        je
+        jmp
+        nopw
+        ret
+        nopl
