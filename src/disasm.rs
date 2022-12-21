@@ -24,9 +24,6 @@
 //! This file operates over files generated with the following combination of flags:
 //! objdump -d --no-addresses --no-show-raw-insn
 use std::fmt;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
 
 mod instruction;
 mod section;
@@ -47,29 +44,7 @@ pub struct Disasm {
 }
 
 impl Disasm {
-    fn from_lines(lines: Vec<String>) -> Result<Self, String> {
-        let mut disasm = Disasm {
-            file_name: String::from(""),
-            file_format: String::from(""),
-            sections: Vec::new(),
-        };
-        // Filter out empty lines
-        let mut lines_iter = lines.into_iter().filter(|line| !line.trim().is_empty());
-        // Process the first line
-        let line = lines_iter
-            .next()
-            .ok_or("Error, the file does not contain any text".to_string())?;
-        disasm.process_first_line(line)?;
-        // Process all other lines
-        for line in lines_iter {
-            disasm.process_other_line(line)?;
-        }
-        // Sort the stored data
-        disasm.sort_sections();
-        Ok(disasm)
-    }
-
-    fn process_first_line(&mut self, line: String) -> Result<(), String> {
+    fn process_first_line(&mut self, line: &str) -> Result<(), String> {
         let err_msg = "Incorrect format for the first line";
 
         let (file_name, leftover_line) = line.split_once(':').ok_or(err_msg.to_string())?;
@@ -82,7 +57,7 @@ impl Disasm {
         Ok(())
     }
 
-    fn process_other_line(&mut self, line: String) -> Result<(), String> {
+    fn process_other_line(&mut self, line: &str) -> Result<(), String> {
         lazy_static! {
             static ref RE_SECTION: Regex =
                 Regex::new(r"^Disassembly of section (?P<sec_name>.[[:alnum:].]+):$").unwrap();
@@ -100,17 +75,17 @@ impl Disasm {
         }
 
         if let Some(sec_name) = RE_SECTION
-            .captures(&line)
+            .captures(line)
             .and_then(|cap| cap.name("sec_name").map(|sec| sec.as_str()))
         {
             self.add_section(Section::new(sec_name));
             Ok(())
         } else if let Some(sym_name) = RE_SYMBOL
-            .captures(&line)
+            .captures(line)
             .and_then(|cap| cap.name("sym_name").map(|sym| sym.as_str()))
         {
-            self.add_symbol(Symbol::new(sym_name))
-        } else if let Some(ins_cap) = RE_INSTRUCTION.captures(&line) {
+            self.add_symbol(Symbol::new(sym_name.trim()))
+        } else if let Some(ins_cap) = RE_INSTRUCTION.captures(line) {
             let opcode = ins_cap.name("opcode").map_or("", |m| m.as_str()).trim();
             let operands = ins_cap.name("operands").map_or("", |m| m.as_str()).trim();
             let comment = ins_cap.name("comment").map_or("", |m| m.as_str()).trim();
@@ -149,6 +124,32 @@ impl Disasm {
     }
 }
 
+impl TryFrom<String> for Disasm {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        let mut disasm = Disasm {
+            file_name: String::from(""),
+            file_format: String::from(""),
+            sections: Vec::new(),
+        };
+        // Filter out empty lines
+        let mut lines_iter = text.lines().filter(|line| !line.trim().is_empty());
+        // Process the first line
+        let line = lines_iter
+            .next()
+            .ok_or("Error, the file does not contain any text".to_string())?;
+        disasm.process_first_line(line)?;
+        // Process all other lines
+        for line in lines_iter {
+            disasm.process_other_line(line)?;
+        }
+        // Sort the stored data
+        disasm.sort_sections();
+        Ok(disasm)
+    }
+}
+
 impl fmt::Display for Disasm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let joined = self
@@ -161,87 +162,34 @@ impl fmt::Display for Disasm {
     }
 }
 
-impl TryFrom<BufReader<File>> for Disasm {
-    type Error = String;
-
-    fn try_from(buffer: BufReader<File>) -> Result<Self, Self::Error> {
-        let lines = buffer
-            .lines()
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|msg| format!("Error reading a line of the disassembly file :{msg}"))?;
-        Disasm::from_lines(lines)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use indoc::indoc;
 
     #[test]
-    fn from_lines_empty_vector_fails() {
-        let result = Disasm::from_lines(Vec::new());
-        assert_eq!(
-            result,
-            Err("Error, the file does not contain any text".to_string())
-        );
-    }
+    fn try_from_simple_corect_file_ok() {
+        let lines = indoc! {"
+            folder\\file:     file format some_format
 
-    #[test]
-    fn from_lines_incorrectly_formatted_first_line_fails() {
-        let lines = Vec::from(["New line with incorrect formatting".to_string()]);
-        let result = Disasm::from_lines(lines);
-        assert_eq!(
-            result,
-            Err("Incorrect format for the first line".to_string())
-        );
-    }
 
-    #[test]
-    fn from_lines_only_first_line_ok() {
-        let lines = Vec::from([r"folder\file:     file format some_format   ".to_string()]);
-        let result = Disasm::from_lines(lines);
-        assert_eq!(
-            result,
-            Ok(Disasm {
-                file_name: r"folder\file".to_string(),
-                file_format: "some_format".to_string(),
-                sections: Vec::new(),
-            })
-        );
-    }
+            Disassembly of section sec1:
 
-    #[test]
-    fn from_lines_simple_corect_file_ok() {
-        let lines: Vec<String> = Vec::from([
-            "  ",
-            " ",
-            "",
-            "folder\\file:     file format some_format   ",
-            "",
-            " ",
-            "Disassembly of section sec1:",
-            "",
-            "",
-            "",
-            "<sym1>:",
-            "	opc1 ",
-            "	opc2    %opr1,%opr2",
-            "	opc3    %opr3                   # comment1",
-            "",
-            "<sym2>:",
-            "    opc4   %opr4  # comment2 ",
-            " ",
-            "Disassembly of section sec2:",
-            "",
-            "<sym3>:",
-            "",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+            <sym1>:
+                opc1
+                opc2    %opr1,%opr2
+                opc3    %opr3                   # comment1
 
-        let result = Disasm::from_lines(lines);
+            <sym2>:
+                opc4   %opr4  # comment2
+
+            Disassembly of section sec2:
+
+            <sym3>:
+        "}
+        .to_string();
+
+        let result = Disasm::try_from(lines);
 
         let mut sec1 = Section::new("sec1");
         sec1.add_symbol(Symbol::new("<sym1>"));
@@ -260,52 +208,36 @@ mod tests {
                 file_format: "some_format".to_string(),
                 sections: Vec::from([sec1, sec2]),
             })
-        );
+        )
     }
 
     #[test]
-    fn from_lines_instruction_before_section_fails() {
-        let lines: Vec<String> =
-            Vec::from(["folder\\file:     file format some_format   ", "	opc1 "])
-                .iter()
-                .map(|l| l.to_string())
-                .collect();
-
-        let result = Disasm::from_lines(lines);
-
+    fn try_from_empty_string_fails() {
+        let result = Disasm::try_from("".to_string());
         assert_eq!(
             result,
-            Err("Attempted to add an instruction without first defining a section".to_string())
-        );
+            Err("Error, the file does not contain any text".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_symbol_before_section_fails() {
-        let lines: Vec<String> =
-            Vec::from(["folder\\file:     file format some_format   ", "<sym1>:"])
-                .iter()
-                .map(|l| l.to_string())
-                .collect();
-
-        let result = Disasm::from_lines(lines);
-
+    fn try_from_incorrectly_formatted_first_line_fails() {
+        let result = Disasm::try_from("New line with incorrect formatting".to_string());
         assert_eq!(
             result,
-            Err("Attempted to add a symbol without first defining a section".to_string())
-        );
+            Err("Incorrect format for the first line".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_section_name_start_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "gibberish of section sec1:",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_section_name_fixed_part_fails() {
+        let lines = indoc! {"
+            folder\\file:     file format some_format
+            gibberish of section sec1:
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
@@ -313,126 +245,151 @@ mod tests {
                 "Unrecognized format for the following line: 'gibberish of section sec1:'"
                     .to_string()
             )
-        );
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_section_name_end_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section sec1:gibberish",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_section_name_strange_sec_name_fails() {
+        let lines = indoc! {"
+            folder\\file:     file format some_format
+            Disassembly of section sec%1:
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
-            Err("Unrecognized format for the following line: 'Disassembly of section sec1:gibberish'".to_string())
-        );
+            Err(
+                "Unrecognized format for the following line: 'Disassembly of section sec%1:'"
+                    .to_string()
+            )
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_symbol_name_start_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section sec1:",
-            "gibberish<sym1>:",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_symbol_missing_start_lt_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+            Disassembly of section sec1:
+            sym1>:
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
-            Err("Unrecognized format for the following line: 'gibberish<sym1>:'".to_string())
-        );
+            Err("Unrecognized format for the following line: 'sym1>:'".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_symbol_name_end_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section sec1:",
-            "<sym1>:gibberish",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_symbol_missing_end_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+            Disassembly of section sec1:
+            <sym1
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
-            Err("Unrecognized format for the following line: '<sym1>:gibberish'".to_string())
-        );
+            Err("Unrecognized format for the following line: '<sym1'".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_instruction_missing_leading_space_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section sec1:",
-            "<sym1>:",
-            "nop",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_instruction_missing_leading_space_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+            Disassembly of section sec1:
+            <sym1>:
+            opc1 opc2    %opr1,%opr2          # comment1
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
-            Err("Unrecognized format for the following line: 'nop'".to_string())
-        );
+            Err("Unrecognized format for the following line: 'opc1 opc2    %opr1,%opr2          # comment1'".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_incorrectly_formatted_instruction_bad_opcode_fails() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section sec1:",
-            "<sym1>:",
-            " n%op",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_incorrectly_formatted_instruction_incorrect_opcode_format_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+            Disassembly of section sec1:
+            <sym1>:
+            	Opc1 opc2    %opr1,%opr2          # comment1
+        "}
+        .to_string();
 
-        let result = Disasm::from_lines(lines);
+        let result = Disasm::try_from(lines);
 
         assert_eq!(
             result,
-            Err("Unrecognized format for the following line: ' n%op'".to_string())
-        );
+            Err("Unrecognized format for the following line: '	Opc1 opc2    %opr1,%opr2          # comment1'".to_string())
+        )
     }
 
     #[test]
-    fn from_lines_unsorted_sections_ok() {
-        let lines: Vec<String> = Vec::from([
-            "folder\\file:     file format some_format   ",
-            "Disassembly of section abb:",
-            "<zsym1>:",
-            "<asym2>:",
-            "<bsym4>:",
-            "<bsym3>:",
-            "Disassembly of section aaa:",
-            "<sym3>:",
-            "<sym1>:",
-            "Disassembly of section adc:",
-            "Disassembly of section abc:",
-            "Disassembly of section acc:",
-        ])
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
+    fn try_from_symbol_before_section_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
 
-        let result = Disasm::from_lines(lines);
+            <sym1>:
+        "}
+        .to_string();
+
+        let result = Disasm::try_from(lines);
+
+        assert_eq!(
+            result,
+            Err("Attempted to add a symbol without first defining a section".to_string())
+        )
+    }
+
+    #[test]
+    fn try_from_instruction_before_section_fails() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+
+            	opc1
+        "}
+        .to_string();
+
+        let result = Disasm::try_from(lines);
+
+        assert_eq!(
+            result,
+            Err("Attempted to add an instruction without first defining a section".to_string())
+        )
+    }
+
+    #[test]
+    fn from_lines_sorting_sections_and_symbols_ok() {
+        let lines = indoc! {r"
+            folder\file:     file format some_format
+            Disassembly of section abb:
+            <zsym1>:
+            <asym2>:
+            <bsym4>:
+            <bsym3>:
+            Disassembly of section aaa:
+            <sym3>:
+            <sym1>:
+            Disassembly of section adc:
+            Disassembly of section abc:
+            Disassembly of section acc:
+        "}
+        .to_string();
+
+        let result = Disasm::try_from(lines);
 
         let mut sec1 = Section::new("aaa");
         sec1.add_symbol(Symbol::new("<sym1>"));
